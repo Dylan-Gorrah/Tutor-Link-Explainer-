@@ -18,6 +18,7 @@
   --ease:cubic-bezier(.32,.72,0,1);
   --r:18px;
   --folder:#edf0f5; --paper:#ffffff;
+  --good:#2b7a4b; --good-soft:#e3f2e8;
   color-scheme:light;
 }
 html,body{background:var(--bg)}
@@ -109,11 +110,18 @@ body{color:var(--hi);font-family:var(--display);-webkit-font-smoothing:antialias
 .controls{display:flex;align-items:center;gap:6px;padding:10px 12px}
 .btn{appearance:none;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--hi);width:38px;height:38px;display:grid;place-items:center;cursor:pointer;flex:none}
 .btn:hover{border-color:var(--line);background:var(--bg)}
-.btn:focus-visible,.seg:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn:focus-visible,.track:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
 .btn svg .f{fill:currentColor;stroke:none}
-.track{flex:1;min-width:0;display:flex;gap:3px;height:38px;align-items:center;margin-inline:6px}
-.seg{appearance:none;border:0;padding:0;background:transparent;height:38px;cursor:pointer;position:relative;min-width:6px;border-radius:4px}
+/* the scrubber: one piece per part, a thumb you can drag anywhere, and a label saying where you are */
+.track{flex:1;min-width:0;display:flex;gap:3px;height:38px;align-items:center;margin-inline:6px;position:relative;cursor:pointer;touch-action:none;border-radius:6px;user-select:none;-webkit-user-select:none}
+.seg{display:block;height:38px;position:relative;min-width:6px;pointer-events:none}
+.thumb{position:absolute;top:50%;left:0;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--plate);border:2px solid var(--accent);
+  box-shadow:0 2px 6px -2px rgba(18,22,32,.35);pointer-events:none;transition:transform .15s var(--ease)}
+.track:hover .thumb,.track.drag .thumb{transform:scale(1.2)}
+.tip{position:absolute;bottom:calc(100% + 2px);left:0;transform:translateX(-50%);background:var(--hi);color:var(--plate);font-family:var(--mono);font-size:11px;
+  letter-spacing:.02em;padding:5px 8px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s var(--ease);font-variant-numeric:tabular-nums}
+.track.drag .tip,.track.hover .tip{opacity:1}
 .seg::before{content:"";position:absolute;left:0;right:0;top:50%;height:4px;margin-top:-2px;background:var(--lo);border-radius:2px}
 .seg i{position:absolute;left:0;top:50%;height:4px;margin-top:-2px;background:var(--edge);width:0;border-radius:2px}
 .seg.now i{background:var(--accent)}
@@ -155,13 +163,39 @@ body{margin:0}
   padding:2.2cqw 2.6cqw;opacity:0;pointer-events:none;display:flex;flex-direction:column;gap:1.4cqw}
 .bl-eb{font-family:var(--mono);font-size:max(9px,1.15cqw);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
 .bl-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 3cqw}
-.bl-h{font-family:var(--mono);font-size:max(9px,1.05cqw);letter-spacing:.07em;color:var(--accent);font-weight:500;padding-bottom:.8cqw;border-bottom:1px solid var(--line)}
-.bl-row{display:flex;gap:1.2cqw;align-items:flex-start;padding:.85cqw 0;border-bottom:1px solid var(--line);will-change:transform,opacity}
-.bl-row:last-child{border-bottom:0}
-.bl-n{flex:none;width:2.3cqw;height:2.3cqw;min-width:14px;min-height:14px;border-radius:50%;border:1px solid var(--edge);display:grid;place-items:center;font-family:var(--mono);font-size:max(8px,1.05cqw);color:var(--edge)}
-.bl-row.raised .bl-n{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
-.bl-k{display:block;font-size:max(10px,1.5cqw);font-weight:600;letter-spacing:-.01em;line-height:1.2}
-.bl-s{display:block;margin-top:.25em;font-family:var(--mono);font-size:max(8px,1.02cqw);color:var(--muted);letter-spacing:.02em;line-height:1.35}
+.bl-row{display:flex;gap:1.3cqw;align-items:flex-start;padding:1.1cqw 0;border-top:1px solid var(--line);will-change:transform,opacity}
+.bl-n{flex:none;min-width:3.4cqw;height:2.4cqw;padding:0 .6cqw;border-radius:999px;border:1px solid var(--edge);display:grid;place-items:center;font-family:var(--mono);font-size:max(8px,1.05cqw);color:var(--edge);margin-top:.15cqw}
+.bl-row.bonus .bl-n{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.bl-k{display:block;font-size:max(10px,1.6cqw);font-weight:600;letter-spacing:-.01em;line-height:1.2}
+.bl-s{display:block;margin-top:.3em;font-size:max(8px,1.18cqw);color:var(--muted);line-height:1.4;text-wrap:pretty}
+
+/* chapters: the scene fades as one layer; the index card and the pause dots sit above it */
+.scene-wrap{position:absolute;inset:0;perspective:1400px}
+.slot.moving{stroke-width:var(--sw2)}
+.pill{stroke-width:var(--sw)}
+.pill.good{fill:var(--good-soft);stroke:var(--good)}
+.pill.gold{fill:var(--accent-soft);stroke:var(--accent)}
+.pill-t{font-family:var(--mono);font-size:calc(17px * var(--tts,1));font-weight:500;letter-spacing:.02em}
+.pill-t.good{fill:var(--good)}
+.pill-t.gold{fill:var(--accent)}
+.phbody{fill:var(--plate);stroke:var(--edge);stroke-width:var(--sw);stroke-linejoin:round}
+.phbody.lit{stroke:var(--accent)}
+.phscr{fill:var(--paper);stroke:var(--mid);stroke-width:var(--sw)}
+.idx{position:absolute;right:4cqw;top:50%;transform:translateY(-50%);width:max(160px,24cqw);background:var(--plate);border:1px solid var(--line);border-radius:14px;
+  padding:1.8cqw 2cqw;opacity:0;pointer-events:none;display:flex;flex-direction:column;gap:.8cqw;box-shadow:0 18px 40px -26px rgba(18,22,32,.35)}
+.idx-eb{font-family:var(--mono);font-size:max(9px,1.1cqw);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.idx ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.idx li{display:flex;align-items:baseline;gap:1.1cqw;font-size:max(11px,1.65cqw);font-weight:600;letter-spacing:-.01em;padding:.7cqw 0;border-top:1px solid var(--line)}
+.idx li span{font-family:var(--mono);font-weight:500;font-size:max(9px,1.15cqw);color:var(--accent);min-width:1.4cqw}
+.wait{position:absolute;right:max(14px,2.4cqw);bottom:max(12px,2.2cqw);display:flex;gap:6px;align-items:center;padding:11px 15px;border:1px solid var(--line);
+  border-radius:999px;background:var(--plate);opacity:0;transition:opacity .45s var(--ease);pointer-events:none;box-shadow:0 10px 24px -18px rgba(18,22,32,.4)}
+.wait.on{opacity:1}
+.wait i{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:waitdot 1.4s ease-in-out infinite}
+.wait i:nth-child(2){animation-delay:.2s}
+.wait i:nth-child(3){animation-delay:.4s}
+@keyframes waitdot{0%,80%,100%{opacity:.25}40%{opacity:1}}
+@media (prefers-reduced-motion: reduce){.wait i{animation:none;opacity:.7}}
+@media (max-width:560px){.wait{padding:6px 9px;gap:4px;right:8px;bottom:8px}.wait i{width:4px;height:4px}}
 </style>
 </head>
 <body>
@@ -169,20 +203,21 @@ body{margin:0}
 <main class="wrap">
   <header class="top">
     <h1>TutorLink licence</h1>
-    <span>Animated explainer · 1:51</span>
+    <span id="runtime">Animated explainer · 5 parts</span>
   </header>
 
   <figure class="player" id="player" style="margin:0">
     <div class="stage" id="stage">
+      <div class="scene-wrap" id="sceneWrap">
       <svg id="scene" viewBox="0 0 1600 900" role="img" aria-labelledby="sceneLabel">
-        <title id="sceneLabel">Line drawing of a campus building that turns into four folders for students, tutors, lecturers and admin, then a timetable board, then a classroom where students scan a QR code on the board to sign in, then zooms out to show what Blackboard costs across campuses, and ends on the TutorLink licence price.</title>
+        <title id="sceneLabel">Line drawing in five parts: a campus building opens into folders for students, tutors, lecturers and admin, students scan a QR code to sign in, and the test results appear. Then a timetable board publishes a change to everyone's phone, everything links up into a data hub, Blackboard's cost is compared with nearby campuses, and it ends on the TutorLink licence and the team benefits.</title>
       </svg>
       <div class="wordmark" id="wordmark">TutorLink<small>Built for Rosebank</small></div>
       <div class="card" id="card" aria-hidden="true">
         <div class="card-eb">TutorLink licence</div>
-        <div class="card-row" id="cr1"><div><span class="k">Every year</span><span class="s">One campus, the full system</span></div><span class="v acc">R35,000</span></div>
-        <div class="card-row" id="cr2"><div><span class="k">Per student</span><span class="s">About 1,200 students</span></div><span class="v">About R30</span></div>
-        <div class="card-foot" id="cf">Same price every year. Built here. Priced in rand.</div>
+        <div class="card-row" id="cr1"><div><span class="k">Every year</span><span class="s">The full system, with the timetable</span></div><span class="v acc">R50,000</span></div>
+        <div class="card-row" id="cr2"><div><span class="k">Updates and fixes</span><span class="s">All year</span></div><span class="v">Included</span></div>
+        <div class="card-foot" id="cf">Built here. Priced in rand.</div>
       </div>
       <!-- added: test results -->
       <div class="counter" id="counter" aria-hidden="true"><div class="big" id="cBig"></div><div class="sub" id="cSub"></div></div>
@@ -195,25 +230,27 @@ body{margin:0}
       </div>
       <!-- added: benefits -->
       <div class="blist" id="blist" aria-hidden="true">
-        <div class="bl-eb">Benefits we've talked about</div>
+        <div class="bl-eb">TutorLink team benefits</div>
         <div class="bl-cols">
           <div class="bl-col">
-            <div class="bl-h">Raised in meetings</div>
-            <div class="bl-row raised"><span class="bl-n">1</span><div><span class="bl-k">ADvTECH meeting</span><span class="bl-s">Present TutorLink to head office for all campuses</span></div></div>
-            <div class="bl-row raised"><span class="bl-n">2</span><div><span class="bl-k">Campus package</span><span class="bl-s">Cash, Rosebank merchandise, a laptop or PC</span></div></div>
-            <div class="bl-row raised"><span class="bl-n">3</span><div><span class="bl-k">Full funding</span><span class="bl-s">Further studies at Rosebank</span></div></div>
-            <div class="bl-row raised"><span class="bl-n">4</span><div><span class="bl-k">Recognition</span><span class="bl-s">A letter of recommendation from the Head of Campus</span></div></div>
+            <div class="bl-row"><span class="bl-n">01</span><div><span class="bl-k">ADvTECH meeting</span><span class="bl-s">Puts us in front of ADvTECH head office so TutorLink can go to all Rosebank campuses.</span></div></div>
+            <div class="bl-row"><span class="bl-n">02</span><div><span class="bl-k">Campus package</span><span class="bl-s">Gives each of us cash, Rosebank merch and a laptop or PC.</span></div></div>
+            <div class="bl-row"><span class="bl-n">03</span><div><span class="bl-k">Study funding</span><span class="bl-s">Pays for our next qualification at Rosebank.</span></div></div>
           </div>
           <div class="bl-col">
-            <div class="bl-h">Our suggestions</div>
-            <div class="bl-row"><span class="bl-n">5</span><div><span class="bl-k">IP backing</span><span class="bl-s">Campus supports our IIE application for the IP</span></div></div>
-            <div class="bl-row"><span class="bl-n">6</span><div><span class="bl-k">Portfolio rights</span><span class="bl-s">Show TutorLink and the results in our CVs</span></div></div>
-            <div class="bl-row"><span class="bl-n">7</span><div><span class="bl-k">Public credit</span><span class="bl-s">A feature in a campus or ADvTECH post</span></div></div>
-            <div class="bl-row"><span class="bl-n">8</span><div><span class="bl-k">Career opportunity</span><span class="bl-s">An interview, internship or role in ADvTECH IT</span></div></div>
-            <div class="bl-row"><span class="bl-n">9</span><div><span class="bl-k">Innovative Founders Award</span><span class="bl-s">A prize at graduation for the team</span></div></div>
+            <div class="bl-row"><span class="bl-n">04</span><div><span class="bl-k">Letter of recommendation</span><span class="bl-s">Gives us a reference from the Head of Campus to show employers.</span></div></div>
+            <div class="bl-row"><span class="bl-n">05</span><div><span class="bl-k">Innovative Founders Award</span><span class="bl-s">Gets us a prize at graduation for building TutorLink.</span></div></div>
+            <div class="bl-row bonus"><span class="bl-n">Bonus</span><div><span class="bl-k">Public credit</span><span class="bl-s">A newspaper article and posts on Rosebank's Instagram and socials, so people outside campus see what we built.</span></div></div>
           </div>
         </div>
       </div>
+      </div>
+      <!-- chapters: index card and the pause dots -->
+      <div class="idx" id="idx" aria-hidden="true">
+        <div class="idx-eb">Today</div>
+        <ol><li><span>1</span>The test run</li><li><span>2</span>Built to grow</li><li><span>3</span>Where it’s going</li><li><span>4</span>The licence</li><li><span>5</span>Benefits</li></ol>
+      </div>
+      <div class="wait" id="wait" role="status" aria-label="Paused for discussion"><i></i><i></i><i></i></div>
     </div>
 
     <div class="caption" id="caption" aria-live="polite">
@@ -229,8 +266,8 @@ body{margin:0}
       <button class="btn" id="btnRestart" type="button" aria-label="Restart">
         <svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 2.1-5"/><path d="M5 4v4h4"/></svg>
       </button>
-      <div class="track" id="track" role="group" aria-label="Scenes"></div>
-      <span class="time" id="time">0:00 / 1:51</span>
+      <div class="track" id="track" role="slider" tabindex="0" aria-label="Position in the explainer" aria-valuemin="0" aria-valuemax="87" aria-valuenow="0"><span class="thumb" id="thumb"></span><span class="tip" id="tip"></span></div>
+      <span class="time" id="time">0:00 / 1:27</span>
       <button class="btn" id="btnFull" type="button" aria-label="Full screen">
         <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
       </button>
@@ -247,7 +284,7 @@ body{margin:0}
       <li>No campus publishes what it pays. Every yearly cost here is students × Blackboard's list price.</li>
       <li>R16.64 to the dollar on 26 Oct 2026: <a href="https://poundsterlinglive.com/data/currencies/USD-pairs/USDZAR-exchange-rate" target="_blank" rel="noopener">Pound Sterling Live</a>.</li>
       <li>Test results come from the anonymous pilot form on 26 and 27 Oct 2026: 14 testers (10 students, 3 tutors and 1 admin). Three responses that didn't answer properly were left out.</li>
-      <li>Space plays and pauses. The left and right arrow keys jump between scenes.</li>
+      <li>It stops by itself after each part. Press Space or play to carry on, drag along the bar to go to any moment, and use the left and right arrow keys to jump between parts.</li>
     </ul>
   </details>
 </main>
@@ -255,46 +292,38 @@ body{margin:0}
 <script>
 (function(){
 "use strict";
-var END = 111;
-var SCENES = [
-  {n:"Open", a:0, b:4},
-  {n:"What it is", a:4, b:14},
-  {n:"It grows", a:14, b:20},
-  {n:"What comes next", a:20, b:29},
-  {n:"Attendance", a:29, b:36},
-  {n:"Connected", a:36, b:44},
-  {n:"The test run", a:44, b:58},
-  {n:"The bigger plan", a:58, b:68},
-  {n:"What it costs now", a:68, b:82},
-  {n:"Benefits", a:82, b:93},
-  {n:"The licence", a:93, b:107},
-  {n:"Close", a:107, b:111}
+/* The scenes are drawn on a source clock (U, 0–111). The meeting cut plays them as five chapters, in a new order,
+   and stops at the end of each chapter for discussion. a/b = source range, v = speed, hold = freeze the source
+   clock while an extra beat (fx) plays, fade = dip through the background at the join, noTT = keep the timetable out of shot. */
+var EST = "Estimate: Blackboard list price of $6–$20 per student a year, at R16.64 to the dollar, for about 1,200 students.";
+var EST2 = "Estimates: students × $6–$20 per student a year, at R16.64 to the dollar. Real contract prices aren’t public.";
+var CHAPTERS = [
+  {n:"Start", eb:"TutorLink", segs:[
+    {a:0, b:3.4, caps:[[0,"Built for Rosebank."]]},
+    {hold:3.4, d:1.8, fx:"index", caps:[[0.3,"Five short parts, with a pause after each."]]}]},
+  {n:"The test run", eb:"1 · The test run", segs:[
+    {a:3.4, b:11, caps:[[3.4,"Students, tutors, lecturers and admin each get their own space."]]},
+    {a:30, b:36.2, fade:1, noTT:1, caps:[[30,"Students scan the QR code on the board and leave."]]},
+    {a:44, b:57, v:1.15, fade:1, caps:[[44,"2 days on campus. Nothing broke."],[48,"12 of 14 testers prefer it to a paper register.","Anonymous form, 26–27 Oct 2026: 10 students, 3 tutors and 1 admin."],[51.5,"Tutors save 3–10 minutes a class. Admin saves 2+ hours a week."],[54.8,"9 of 10 students say seeing their attendance helps them keep up."]]}]},
+  {n:"Built to grow", eb:"2 · Built to grow", segs:[
+    {a:14, b:20, fade:1, caps:[[14,"TutorLink is built in blocks, so new tools slot in."],[15.9,"The first new block is the timetable planner."]]},
+    {hold:20, d:7.2, fx:"publish", caps:[[0,"Admin moves a class, and TutorLink checks for clashes."],[2.6,"Publish once, and everyone’s phone updates live."]]}]},
+  {n:"Where it’s going", eb:"3 · Where it’s going", segs:[
+    {a:36.2, b:44, fade:1, caps:[[36.2,"Everything is connected, so TutorLink becomes campus’s data hub."],[38.4,"It flags students at risk early, before they fall behind."]]},
+    {a:58, b:68, v:1.2, caps:[[58,"Built around how Rosebank works. Next, it grows to replace systems like Blackboard."]]},
+    {a:68, b:72.3, caps:[[68.6,"This campus pays about R120,000 to R400,000 a year for Blackboard.",EST]]}]},
+  {n:"The licence", eb:"4 · The licence", segs:[
+    {a:72.3, b:82, caps:[[72.3,"UFS and CUT each spend millions a year on their learning platforms.",EST2],[77,"TutorLink: R50,000 a year for the full system."]]},
+    {a:93, b:98.4, caps:[[93,"The TutorLink licence: R50,000 a year."]]}]},
+  {n:"Benefits", eb:"5 · Benefits", segs:[
+    {a:82.7, b:86.8, fade:1, caps:[[82.7,"The benefits we’d like with this deal."]]}]},
+  {n:"Close", eb:"TutorLink", segs:[
+    {a:107.2, b:111, fade:1, caps:[[107.2,"It grows with Rosebank."]]}]}
 ];
 /* three scenes were added on top of the original 1:17 cut: while one plays, the original clock (T) holds still */
 function toT(U){return U<20?U:U<29?20:U<44?U-9:U<58?35:U<82?U-23:U<93?59:U-34;}
 /* the attendance scene was added at 20–27s; everything drawn before it keeps its own clock, paused while it plays */
 function remap(T){return T<20?T:(T<27?20:T-7);}
-var EST = "Estimate: Blackboard list price of $6–$20 per student a year, at R16.64 to the dollar, for about 1,200 students.";
-var EST2 = "Estimates: students × $6–$20 per student a year, at R16.64 to the dollar. Real contract prices aren’t public.";
-var CAPS = [
-  {t:0, eb:"TutorLink licence", tx:"TutorLink. Built for Rosebank."},
-  {t:4, eb:"01 · What it is", tx:"TutorLink makes running campus tutoring quick and easy. Students, tutors, lecturers and admin each get their own space, built around how Rosebank works."},
-  {t:14, eb:"02 · It grows", tx:"When the campus needs more, new tools slot in. A timetable manager is next."},
-  {t:20, eb:"03 · What comes next", tx:"And it doesn’t stop there. Any feature campus asks for can slot in next, like reminders, marks and notices.", note:"These are features testers asked for in the pilot feedback."},
-  {t:29, eb:"04 · Attendance", tx:"Attendance tracking is built in. Students scan the QR code on the board and leave. No register, no paperwork."},
-  {t:36, eb:"05 · It’s connected", tx:"Because everything is connected, from attendance to sessions, TutorLink spots at-risk students early, so the campus can make better decisions."},
-  {t:44, eb:"06 · The test run", tx:"We tested TutorLink on campus for two days, and nothing broke."},
-  {t:48, eb:"06 · The test run", tx:"12 of 14 testers would rather use it than a paper register.", note:"Anonymous form, 26 and 27 Oct 2026: 10 students, 3 tutors and 1 admin. All 4 staff prefer TutorLink."},
-  {t:51.5, eb:"06 · The test run", tx:"Tutors save 3 to 10 minutes a class, and admin saves over 2 hours a week."},
-  {t:54.8, eb:"06 · The test run", tx:"9 of 10 students say seeing their attendance on their phone helps them keep up."},
-  {t:58, eb:"07 · The bigger plan", tx:"Most campus software comes from overseas and is paid in dollars. Next, we want TutorLink to grow and replace those systems."},
-  {t:68, eb:"08 · What it costs now", tx:"Rosebank Bloemfontein pays for Blackboard. That’s about R120,000 to R400,000 a year.", note:EST},
-  {t:72.5, eb:"08 · What it costs now", tx:"The big campuses around us pay far more. UFS and CUT each spend millions a year on their learning platforms.", note:EST2},
-  {t:77, eb:"08 · What it costs now", tx:"TutorLink costs R35,000 a year. That’s about R30 per student.", note:"Blackboard works out to about R100–R333 per student a year."},
-  {t:82, eb:"09 · Benefits", tx:"These are the benefits we’ve talked about. Let’s agree which ones come with this deal."},
-  {t:93, eb:"10 · The licence", tx:"Here’s the licence: R35,000 a year, every year. That’s less than a third of the lowest Blackboard estimate for this campus."},
-  {t:107, eb:"TutorLink", tx:"TutorLink. It grows with Rosebank."}
-];
 
 var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -317,7 +346,7 @@ function seg2(a,b){return "M"+pt(a)+"L"+pt(b);}
 function rectXZ(x0,x1,y,z0,z1){return poly([P(x0,y,z0),P(x1,y,z0),P(x1,y,z1),P(x0,y,z1)]);}
 
 var CAM=[
-  [0,0,1.6,0,-85],
+  [0,0,1.6,62,-85],
   [4.4,6.2,1.1,40,-80],
   [14.2,15.8,1.1,560,120],
   [20,21.8,1.12,-675,20],
@@ -646,7 +675,7 @@ function placeTag(o,r,op,L,below){
 var tagRB=makeTag("Rosebank Bloemfontein · Blackboard","R120k – R400k a year",false);
 var tagUFS=makeTag("UFS · Blackboard, moving to Brightspace","R3.8m – R12.8m a year",false);
 var tagCUT=makeTag("CUT · Blackboard (eThuto)","R2.2m – R7.3m a year",false);
-var tagTL=makeTag("TutorLink · about R30 per student","R35k a year",true);
+var tagTL=makeTag("TutorLink · the full system","R50k a year",true);
 
 /* ---------- HTML refs ---------- */
 var stage=document.getElementById("stage"),wordmark=document.getElementById("wordmark");
@@ -654,7 +683,7 @@ var card=document.getElementById("card"),cr1=document.getElementById("cr1"),cr2=
 var caption=document.getElementById("caption"),capEb=document.getElementById("capEb"),capTx=document.getElementById("capTx"),capNote=document.getElementById("capNote");
 var timeEl=document.getElementById("time"),btnPlay=document.getElementById("btnPlay"),icoPlay=document.getElementById("icoPlay");
 var track=document.getElementById("track");
-var ts=1,tts=1;
+var ts=1,tts=1,NO_TT=false;
 
 function setOp(e,v){e.setAttribute("opacity",clamp(v,0,1).toFixed(3));}
 function hide(e){e.setAttribute("opacity","0");}
@@ -705,7 +734,7 @@ function drawFiles(t){
   });
 
   /* timetable board */
-  var tk=seg(t,14.4,15.8),tOp=seg(t,14.4,15)*out;
+  var tk=seg(t,14.4,15.8),tOp=seg(t,14.4,15)*out*(NO_TT?0:1);
   if(tOp>0.002){
     setOp(tt.g,tOp);
     var x=TT.x+(1-eo(tk))*260,y=TT.y,y1=y+TT.d,w=TT.w,z0=TT.z,z1=TT.z+TT.h;
@@ -918,68 +947,239 @@ function drawTest(U){
   }
 }
 
-/* 09 · benefits: an animated list over the dimmed world */
+/* 5 · benefits: the team's list over the dimmed world, one row at a time */
 function drawBenefits(U){
   var bIn=eo(seg(U,82.4,83.2)),bOut=eio(seg(U,92.2,92.9)),bOp=bIn*(1-bOut);
   blist.style.opacity=bOp.toFixed(3);
   if(bOp<=0.002)return;
   blist.style.transform="translate(-50%,-50%) translateY("+((1-bIn)*24-bOut*16).toFixed(1)+"px)";
-  BHEADS.forEach(function(h,i){h.style.opacity=seg(U,82.8+i*2,83.2+i*2).toFixed(3);});
   BROWS.forEach(function(r,i){
-    var s0=83.0+i*0.45+(i>=4?0.2:0),k=eo(seg(U,s0,s0+0.5));
+    var s0=83.0+i*0.5+(i===5?0.3:0),k=eo(seg(U,s0,s0+0.5));
     r.style.opacity=k.toFixed(3);r.style.transform="translateX("+((1-k)*-18).toFixed(1)+"px)";
   });
 }
 
-/* the full clock: works out the original clock, how much the world shows, then draws everything */
+/* 2 · built to grow: admin moves a class, it passes the clash check, gets published, and every phone updates */
+function round4(x0,y0,x1,y1,r){
+  return "M"+(x0+r).toFixed(1)+" "+y0.toFixed(1)+"H"+(x1-r).toFixed(1)+"A"+r.toFixed(1)+" "+r.toFixed(1)+" 0 0 1 "+x1.toFixed(1)+" "+(y0+r).toFixed(1)+
+         "V"+(y1-r).toFixed(1)+"A"+r.toFixed(1)+" "+r.toFixed(1)+" 0 0 1 "+(x1-r).toFixed(1)+" "+y1.toFixed(1)+
+         "H"+(x0+r).toFixed(1)+"A"+r.toFixed(1)+" "+r.toFixed(1)+" 0 0 1 "+x0.toFixed(1)+" "+(y1-r).toFixed(1)+
+         "V"+(y0+r).toFixed(1)+"A"+r.toFixed(1)+" "+r.toFixed(1)+" 0 0 1 "+(x0+r).toFixed(1)+" "+y0.toFixed(1)+"Z";
+}
+var gPub=el("g",{},gWorld);
+var pubPill=el("rect",{"class":"pill"},gPub),pubTxt=el("text",{"class":"pill-t","text-anchor":"middle"},gPub);
+var pubLbl=el("text",{"class":"lbl acc","text-anchor":"middle"},gPub);pubLbl.textContent="Live on everyone's phone";
+var PHONES=[0,1,2].map(function(i){
+  var o={i:i};
+  o.beam=el("path",{"class":"beam"},gPub);o.body=el("path",{"class":"phbody"},gPub);o.scr=el("path",{"class":"phscr"},gPub);
+  o.grid=el("path",{"class":"win"},gPub);o.cell=el("path",{"class":"slot"},gPub);o.tick=el("path",{"class":"tick"},gPub);
+  return o;
+});
+function drawPublish(L){
+  if(L==null){hide(gPub);tt.slots[3].setAttribute("class","slot");return;}
+  setOp(gPub,1);
+  var x=TT.x,y1=TT.y+TT.d,w=TT.w,z0=TT.z,z1=TT.z+TT.h,s=cam.s;
+  var gx0=x+18,gx1=x+w-18,gz0=z0+18,gz1=z1-18,hz=gz1-34,cw=(gx1-gx0)/5,rh=(hz-gz0)/4;
+  /* the class slides one day across */
+  var mk=eio(seg(L,0.4,1.5)),cx=gx0+lerp(1,2,mk)*cw+cw/2,cz=hz-rh-rh/2,hw=cw/2-7,hh=rh/2-7;
+  tt.slots[3].setAttribute("d",rectXZ(cx-hw,cx+hw,y1,cz-hh,cz+hh));
+  tt.slots[3].setAttribute("class",L>0.2&&L<2.4?"slot moving":"slot");
+  /* the clash check, then publish */
+  var good=L<2.6,pOp=seg(L,1.6,1.9),label=good?"No clashes":"Published",tp=P(x+w/2,y1,z1);
+  if(pubTxt.textContent!==label)pubTxt.textContent=label;
+  pubPill.setAttribute("class","pill "+(good?"good":"gold"));pubTxt.setAttribute("class","pill-t "+(good?"good":"gold"));
+  var tw=pubTxt.getComputedTextLength()+36*tts,ph0=36*tts,py=tp[1]-30*s-ph0;
+  pubPill.setAttribute("x",(tp[0]-tw/2).toFixed(1));pubPill.setAttribute("y",py.toFixed(1));
+  pubPill.setAttribute("width",tw.toFixed(1));pubPill.setAttribute("height",ph0.toFixed(1));pubPill.setAttribute("rx",(ph0/2).toFixed(1));
+  pubTxt.setAttribute("x",tp[0].toFixed(1));pubTxt.setAttribute("y",(py+ph0/2+6*tts).toFixed(1));
+  setOp(pubPill,pOp);setOp(pubTxt,pOp);
+  /* three phones beside the board light up as the change reaches them */
+  var A=P(x+w+40,y1,z0+170),src=P(cx,y1,cz),pw=64*s,ph=124*s,gap=26*s;
+  PHONES.forEach(function(o){
+    var i=o.i,x0=A[0]+30*s+i*(pw+gap),y0=A[1]-ph/2,app=seg(L,2.6+i*0.12,3.1+i*0.12);
+    var b0=3.0+i*0.25,bk=eo(seg(L,b0,b0+0.6)),lit=L>=b0+0.6,tgt=[x0+pw/2,y0-4*s];
+    o.beam.setAttribute("d",seg2(src,[lerp(src[0],tgt[0],bk),lerp(src[1],tgt[1],bk)]));
+    setOp(o.beam,bk>0?1-seg(L,4.8+i*0.2,5.4+i*0.2):0);
+    o.body.setAttribute("d",round4(x0,y0,x0+pw,y0+ph,11*s));o.body.setAttribute("class",lit?"phbody lit":"phbody");setOp(o.body,app);
+    var sx0=x0+6*s,sx1=x0+pw-6*s,sy0=y0+13*s,sy1=y0+ph-13*s;
+    o.scr.setAttribute("d",round4(sx0,sy0,sx1,sy1,4*s));setOp(o.scr,app);
+    var cwp=(sx1-sx0-8*s)/3,rhp=(sy1-sy0-24*s)/4,g=seg2([sx0+5*s,sy0+9*s],[sx0+(sx1-sx0)*0.62,sy0+9*s]),cell="";
+    for(var r=0;r<4;r++)for(var c=0;c<3;c++){
+      var a0=sx0+4*s+c*cwp+1.5*s,a1=a0+cwp-3*s,b0y=sy0+19*s+r*rhp+1.5*s,b1y=b0y+rhp-3*s;
+      if(c===1&&r===1){cell=round4(a0,b0y,a1,b1y,2*s);continue;}
+      g+=round4(a0,b0y,a1,b1y,2*s);
+    }
+    o.grid.setAttribute("d",g);setOp(o.grid,app);
+    o.cell.setAttribute("d",cell);setOp(o.cell,lit?seg(L,b0+0.6,b0+0.9):0);
+    var tc=[x0+pw/2,y0-18*s];
+    o.tick.setAttribute("d","M"+(tc[0]-7*s).toFixed(1)+" "+tc[1].toFixed(1)+"L"+(tc[0]-2*s).toFixed(1)+" "+(tc[1]+5*s).toFixed(1)+"L"+(tc[0]+8*s).toFixed(1)+" "+(tc[1]-6*s).toFixed(1));
+    setOp(o.tick,seg(L,b0+0.75,b0+0.95));
+  });
+  pubLbl.setAttribute("x",(A[0]+30*s+(3*pw+2*gap)/2).toFixed(1));pubLbl.setAttribute("y",(A[1]+ph/2+40*ts).toFixed(1));
+  setOp(pubLbl,seg(L,4.6,5.2));
+}
+
+/* the source clock: works out the original clock, how much the world shows, then draws everything */
 function renderU(U){
   var T=toT(U);
   WM=1;WCAP=1;
   if(U>=44&&U<58)WM=1-seg(U,44,44.8)+seg(U,57.2,58);
   if(U>=82&&U<93)WM=1-0.88*seg(U,82,82.8);
-  if(U>=93&&U<94.2)WCAP=0.12;
+  if(U>=93&&U<94.2)WCAP=1-0.88*seg(U,93,93.6);
   render(T);
   drawMods(U);drawTest(U);drawBenefits(U);
-  setCaption(U);setUI(U);
+}
+
+/* ---------- chapters: lay every segment out on the meeting clock (Q) ---------- */
+var SEGS=[],QCAPS=[],q=0;
+CHAPTERS.forEach(function(ch,ci){
+  ch.q0=q;
+  ch.segs.forEach(function(sg,si){
+    var d=sg.hold!=null?sg.d:(sg.b-sg.a)/(sg.v||1);
+    sg.q0=q;sg.q1=q+d;sg.ci=ci;sg.si=si;SEGS.push(sg);
+    (sg.caps||[]).forEach(function(c){
+      var at=sg.hold!=null?q+c[0]:q+Math.max(0,c[0]-sg.a)/(sg.v||1);
+      QCAPS.push({q:at,ci:ci,eb:ch.eb,tx:c[1],note:c[2]||""});
+    });
+    q+=d;
+  });
+  ch.q1=q;
+});
+var TOTAL=q,FADE_IN=0.45,FADE_OUT=0.35,OUTRO=0.35;
+QCAPS.sort(function(a,b){return a.q-b.q;});
+function locate(Q){
+  for(var i=0;i<SEGS.length;i++){if(Q<=SEGS[i].q1+1e-9)return i;}
+  return SEGS.length-1;
+}
+function sourceAt(sg,Q){return sg.hold!=null?sg.hold:sg.a+(Q-sg.q0)*(sg.v||1);}
+var wrap=document.getElementById("sceneWrap"),idxCard=document.getElementById("idx"),waitPill=document.getElementById("wait");
+document.getElementById("runtime").textContent="Animated explainer · 5 parts · "+fmt(TOTAL);
+var atStop=false;
+function renderQ(Q,fadeOverride){
+  var i=locate(Q),sg=SEGS[i],nx=SEGS[i+1],local=Q-sg.q0;
+  NO_TT=!!sg.noTT;
+  renderU(sourceAt(sg,Q));
+  drawPublish(sg.fx==="publish"?local:null);
+  /* index card: in at the end of the opening, out as part 1 starts */
+  var io=0;
+  if(sg.fx==="index")io=eo(seg(local,0.1,0.9));
+  else if(sg.ci===1&&sg.si===0)io=1-seg(local,0,0.5);
+  idxCard.style.opacity=io.toFixed(3);
+  idxCard.style.transform="translateY(-50%) translateX("+((1-io)*16).toFixed(1)+"px)";
+  /* dips through the background where scenes join */
+  var f=1;
+  if(sg.fade&&local<FADE_IN&&Q>0)f=eo(clamp(local/FADE_IN,0,1));
+  if(nx&&nx.ci===sg.ci&&nx.fade&&sg.q1-Q<FADE_OUT)f=Math.min(f,clamp((sg.q1-Q)/FADE_OUT,0,1));
+  if(fadeOverride!=null)f=fadeOverride;
+  wrap.style.opacity=f>=0.999?"":f.toFixed(3);
+  waitPill.classList.toggle("on",atStop&&Q<TOTAL-1e-6);
+  setCaption(Q);setUI(Q);
 }
 
 /* ---------- caption ---------- */
 var capIdx=-1;
-function setCaption(t){
-  var idx=0;for(var i=0;i<CAPS.length;i++){if(t>=CAPS[i].t)idx=i;}
+function setCaption(Q){
+  /* only this chapter's captions, so a stop keeps its own last line instead of the next part's first */
+  var ci=SEGS[locate(Q)].ci,idx=-1;
+  for(var i=0;i<QCAPS.length;i++){if(QCAPS[i].ci!==ci)continue;if(idx<0||Q+1e-6>=QCAPS[i].q)idx=i;}
   if(idx===capIdx)return;capIdx=idx;
-  var c=CAPS[idx];
-  capEb.textContent=c.eb;capTx.textContent=c.tx;capNote.textContent=c.note||"";capNote.hidden=!c.note;
+  var c=QCAPS[idx];
+  capEb.textContent=c.eb;capTx.textContent=c.tx;capNote.textContent=c.note;capNote.hidden=!c.note;
   caption.classList.remove("in");void caption.offsetWidth;caption.classList.add("in");
 }
 
-/* ---------- controls ---------- */
-var segs=SCENES.map(function(s,i){
-  var b=document.createElement("button");b.type="button";b.className="seg";b.style.flex=String(s.b-s.a);
-  b.setAttribute("aria-label","Scene "+(i+1)+": "+s.n);b.title=s.n;
-  var f=document.createElement("i");b.appendChild(f);track.appendChild(b);
-  b.addEventListener("click",function(){seek(s.a+0.01);if(!playing)play();});
-  return {b:b,f:f,s:s};
+/* ---------- controls: a scrubber made of one piece per chapter ---------- */
+var thumb=document.getElementById("thumb"),tip=document.getElementById("tip");
+var segs=CHAPTERS.map(function(ch,i){
+  var b=document.createElement("span");b.className="seg";b.style.flex=String(Math.max(ch.q1-ch.q0,2));
+  var f=document.createElement("i");b.appendChild(f);track.insertBefore(b,thumb);
+  return {b:b,f:f,ch:ch};
 });
+track.setAttribute("aria-valuemax",String(Math.round(TOTAL)));
 function fmt(x){x=Math.max(0,Math.floor(x));return Math.floor(x/60)+":"+String(x%60).padStart(2,"0");}
-var lastUI="";
-function setUI(t){
-  segs.forEach(function(g){
-    var k=seg(t,g.s.a,g.s.b);g.f.style.width=(k*100).toFixed(2)+"%";
-    var now=t>=g.s.a&&(t<g.s.b||(g.s.b===END&&t>=END));g.b.classList.toggle("now",now);
-    if(now)g.b.setAttribute("aria-current","step");else g.b.removeAttribute("aria-current");
-  });
-  var s=fmt(t)+" / "+fmt(END);if(s!==lastUI){timeEl.textContent=s;lastUI=s;}
+function partName(ci){var ch=CHAPTERS[ci];return ci>0&&ci<CHAPTERS.length-1?ci+" · "+ch.n:ch.n;}
+/* where on the track a moment sits, and which moment sits under a pointer */
+function xFromQ(Q){
+  var ci=SEGS[locate(Q)].ci,g=segs[ci],k=seg(Q,g.ch.q0,g.ch.q1);
+  return g.b.offsetLeft+k*g.b.offsetWidth;
 }
-var playing=false,t=0,last=0;
+function qFromX(clientX){
+  var Q=0;
+  for(var i=0;i<segs.length;i++){
+    var r=segs[i].b.getBoundingClientRect(),ch=segs[i].ch;
+    if(clientX<r.left){Q=i===0?0:CHAPTERS[i-1].q1;return Q;}
+    if(clientX<=r.right){return ch.q0+clamp((clientX-r.left)/Math.max(r.width,1),0,1)*(ch.q1-ch.q0);}
+  }
+  return TOTAL;
+}
+function placeTip(x,Q){
+  var w=track.clientWidth,half=(tip.offsetWidth||90)/2;
+  tip.textContent=partName(SEGS[locate(Q)].ci)+" · "+fmt(Q);
+  tip.style.left=clamp(x,half,Math.max(half,w-half)).toFixed(1)+"px";
+}
+var lastUI="";
+function setUI(Q){
+  var cur=SEGS[locate(Q)].ci;
+  segs.forEach(function(g,i){
+    var k=seg(Q,g.ch.q0,g.ch.q1);g.f.style.width=(k*100).toFixed(2)+"%";
+    g.b.classList.toggle("now",i===cur);
+  });
+  var x=xFromQ(Q);thumb.style.left=x.toFixed(1)+"px";
+  if(scrub)placeTip(x,Q);
+  track.setAttribute("aria-valuenow",String(Math.round(Q)));
+  track.setAttribute("aria-valuetext",partName(cur)+", "+fmt(Q)+" of "+fmt(TOTAL));
+  var s=fmt(Q)+" / "+fmt(TOTAL);if(s!==lastUI){timeEl.textContent=s;lastUI=s;}
+}
+/* drag (or tap) anywhere on the track to jump there, forwards or backwards */
+var scrub=null;
+track.addEventListener("pointerdown",function(e){
+  if(e.pointerType==="mouse"&&e.button!==0)return;
+  e.preventDefault();
+  try{track.setPointerCapture(e.pointerId);}catch(err){}
+  scrub={wasPlaying:playing};playing=false;outro=0;
+  track.classList.add("drag");
+  seek(qFromX(e.clientX));
+});
+track.addEventListener("pointermove",function(e){
+  if(scrub){seek(qFromX(e.clientX));return;}
+  if(e.pointerType!=="mouse")return;
+  var r=track.getBoundingClientRect();track.classList.add("hover");placeTip(e.clientX-r.left,qFromX(e.clientX));
+});
+track.addEventListener("pointerleave",function(){track.classList.remove("hover");});
+function endScrub(){
+  if(!scrub)return;
+  var resume=scrub.wasPlaying;scrub=null;track.classList.remove("drag");
+  if(resume)play();else syncBtn();
+}
+track.addEventListener("pointerup",endScrub);
+track.addEventListener("pointercancel",endScrub);
+track.addEventListener("lostpointercapture",endScrub);
+var playing=false,t=0,last=0,outro=0;
 var PAUSE='<rect class="f" x="6" y="5" width="4" height="14" rx="1"/><rect class="f" x="14" y="5" width="4" height="14" rx="1"/>';
 var PLAY='<path class="f" d="M7 4.5v15l12-7.5z"/>';
-function syncBtn(){icoPlay.innerHTML=playing?PAUSE:PLAY;btnPlay.setAttribute("aria-label",playing?"Pause":(t>=END?"Play again":"Play"));}
-function play(){if(t>=END)t=0;playing=true;last=performance.now();syncBtn();}
-function pause(){playing=false;syncBtn();}
-function seek(x){t=clamp(x,0,END);renderU(t);}
+function syncBtn(){
+  icoPlay.innerHTML=playing?PAUSE:PLAY;
+  btnPlay.setAttribute("aria-label",playing?"Pause":(t>=TOTAL-1e-6?"Play again":(atStop?"Next part":"Play")));
+}
+function chapterEnd(Q){return CHAPTERS[SEGS[locate(Q)].ci].q1;}
+function play(){
+  if(t>=TOTAL-1e-6){t=0;atStop=false;}
+  if(atStop){
+    atStop=false;
+    var nx=SEGS[locate(t)+1];
+    if(nx&&nx.fade)outro=OUTRO;else t+=0.0005;
+  }
+  playing=true;last=performance.now();syncBtn();
+}
+function pause(){playing=false;syncBtn();renderQ(t);}
+function seek(x){t=clamp(x,0,TOTAL);atStop=false;outro=0;renderQ(t);syncBtn();}
+function goChapter(i){
+  i=clamp(i,0,CHAPTERS.length-1);
+  seek(i===0?0:CHAPTERS[i].q0+0.0005);
+  if(!playing)play();
+}
 btnPlay.addEventListener("click",function(){playing?pause():play();});
-document.getElementById("btnRestart").addEventListener("click",function(){seek(0);play();});
+document.getElementById("btnRestart").addEventListener("click",function(){goChapter(0);});
 document.getElementById("btnFull").addEventListener("click",function(){
   var p=document.getElementById("player");
   try{
@@ -990,11 +1190,20 @@ document.getElementById("btnFull").addEventListener("click",function(){
 document.addEventListener("keydown",function(e){
   var tag=(e.target&&e.target.tagName)||"";
   if(tag==="BUTTON"||tag==="INPUT"||tag==="SUMMARY"||tag==="A")return;
+  /* on the scrubber: arrows step 2 seconds (Shift jumps a part), Home and End go to the ends */
+  if(e.target===track&&/^(ArrowRight|ArrowLeft|Home|End)$/.test(e.key)&&!(e.shiftKey&&e.key.indexOf("Arrow")===0)){
+    e.preventDefault();
+    var st=e.key==="Home"?0:e.key==="End"?TOTAL:t+(e.key==="ArrowRight"?2:-2);
+    var was=playing;playing=false;seek(st);if(was)play();
+    return;
+  }
   if(e.key===" "||e.key==="k"){e.preventDefault();playing?pause():play();}
   else if(e.key==="ArrowRight"||e.key==="ArrowLeft"){
     e.preventDefault();
-    var cur=0;SCENES.forEach(function(s,i){if(t>=s.a)cur=i;});
-    var nx=clamp(cur+(e.key==="ArrowRight"?1:-1),0,SCENES.length-1);seek(SCENES[nx].a+0.01);
+    var cur=SEGS[locate(t)].ci;
+    if(atStop&&e.key==="ArrowRight"){play();return;}
+    if(e.key==="ArrowLeft"&&t-CHAPTERS[cur].q0>1.5)goChapter(cur);
+    else goChapter(cur+(e.key==="ArrowRight"?1:-1));
   }
 });
 
@@ -1004,24 +1213,33 @@ function resize(){
   ts=clamp(760/w,1,2.1);
   stage.style.setProperty("--ts",ts.toFixed(3));
   tts=Math.min(ts,1.4);stage.style.setProperty("--tts",tts.toFixed(3));
-  renderU(t);
+  renderQ(t);
 }
 if(window.ResizeObserver){new ResizeObserver(resize).observe(stage);}else{window.addEventListener("resize",resize);}
 
+/* plays to the end of the current chapter, then stops with the "…" showing until someone carries on */
 function loop(now){
   if(playing){
-    var dt=Math.min(0.05,(now-last)/1000);last=now;t+=dt;
-    if(t>=END){t=END;playing=false;syncBtn();}
-    renderU(t);
+    var dt=Math.min(0.05,(now-last)/1000);last=now;
+    if(outro>0){
+      outro-=dt;renderQ(t,Math.max(0,outro/OUTRO));
+      if(outro<=0){outro=0;t+=0.0005;}
+    }else{
+      var end=chapterEnd(t);
+      if(t+dt>=end-1e-9){t=end;playing=false;atStop=end<TOTAL-1e-6;renderQ(t);syncBtn();}
+      else{t+=dt;renderQ(t);}
+    }
   }else last=now;
   requestAnimationFrame(loop);
 }
 
-if(reduce){t=3.2;renderU(t);syncBtn();}
-else{renderU(0);play();}
+if(reduce){t=CHAPTERS[0].q1;atStop=true;renderQ(t);syncBtn();}
+else{renderQ(0);play();}
 resize();
 requestAnimationFrame(loop);
-window.tutorlinkExplainer={seek:function(x){pause();seek(x);},play:play,pause:pause};
+window.tutorlinkExplainer={seek:function(x){pause();seek(x);},play:play,pause:pause,
+  stops:CHAPTERS.map(function(c){return c.q1;}),total:TOTAL,
+  stopAt:function(i){playing=false;t=CHAPTERS[i].q1;atStop=t<TOTAL-1e-6;outro=0;renderQ(t);syncBtn();}};
 })();
 </script>
 
